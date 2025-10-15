@@ -1,0 +1,20 @@
+{
+    "d71a1d59c80d8b32": [
+        {
+            "timestamp": "2025-10-15T14:35:18.064652",
+            "results_count": 1,
+            "image_info": {
+                "filename": "download.jpg",
+                "size": "640x640"
+            }
+        },
+        {
+            "timestamp": "2025-10-15T14:39:01.991685",
+            "results_count": 2,
+            "image_info": {
+                "filename": "download (1).jpg",
+                "size": "640x640"
+            }
+        }
+    ]
+}
