@@ -31,6 +31,22 @@
                 "filename": "WhatsApp Image 2025-09-16 at 07.34.44_59c6f030.jpg",
                 "size": "874x1280"
             }
+        },
+        {
+            "timestamp": "2025-10-19T15:48:44.547125",
+            "results_count": 0,
+            "image_info": {
+                "filename": "images.jpg",
+                "size": "246x205"
+            }
+        },
+        {
+            "timestamp": "2025-10-19T15:48:57.578920",
+            "results_count": 1,
+            "image_info": {
+                "filename": "download.jpg",
+                "size": "640x640"
+            }
         }
     ]
 }

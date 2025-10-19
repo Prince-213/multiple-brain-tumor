@@ -217,7 +217,7 @@ else:
             if st.button("Analyze Scan"):
                 with st.spinner("Analyzing MRI scan for tumors..."):
                     # Perform tumor detection
-                    results = model(opencv_image)[0]
+                    results = model(opencv_image, conf=0.7)[0]
                     detections = sv.Detections.from_ultralytics(results)
                     
                     # Create annotators
