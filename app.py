@@ -260,7 +260,7 @@ else:
                         st.warning("⚠️ Please consult with a medical professional for proper diagnosis.")
                     else:
                         st.success("✅ No tumors detected in this scan")
-                        st.info("🎉 This is a good sign, but regular checkups are still recommended.")
+                        st.info("Regular checkups are still recommended.")
     
     elif page == "Detection History":
         st.title("Detection History")
