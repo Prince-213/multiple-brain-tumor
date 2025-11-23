@@ -217,24 +217,69 @@ else:
             if st.button("Analyze Scan"):
                 with st.spinner("Analyzing MRI scan for tumors..."):
                     # Perform tumor detection
-                    results = model(opencv_image, conf=0.7)[0]
+                    results = model(opencv_image, conf=0.75)[0]
                     detections = sv.Detections.from_ultralytics(results)
                     
-                    # Create annotators
-                    mask_annotator = sv.MaskAnnotator()
-                    label_annotator = sv.LabelAnnotator(text_position=sv.Position.TOP_LEFT)
-                    corner_annotator = sv.BoxCornerAnnotator()
+                    # Get class names from the model
+                    class_names = model.names
                     
-                    # Apply annotations
-                    annotated_image = mask_annotator.annotate(
-                        scene=opencv_image.copy(), detections=detections)
-                    annotated_image = label_annotator.annotate(
-                        scene=annotated_image, detections=detections)
-                    annotated_image = corner_annotator.annotate(
-                        scene=annotated_image, detections=detections)
+                    # Check if any tumor detections exist (not "No tumor" class)
+                    tumor_detections = []
                     
-                    # Convert BGR to RGB for Streamlit display
-                    annotated_image_rgb = cv2.cvtColor(annotated_image, cv2.COLOR_BGR2RGB)
+                    # Filter out "No tumor" detections
+                    if len(detections) > 0:
+                        for i in range(len(detections)):
+                            # Check if the detection is not "No tumor" class
+                            class_id = detections.class_id[i]
+                            class_name = class_names.get(class_id, f"Class_{class_id}")
+                            if class_name.lower() != "no tumor":  # Case-insensitive check
+                                tumor_detections.append(i)
+                    
+                    # Create filtered detections for actual tumors only
+                    if tumor_detections:
+                        tumor_detections = sv.Detections(
+                            xyxy=detections.xyxy[tumor_detections],
+                            confidence=detections.confidence[tumor_detections],
+                            class_id=detections.class_id[tumor_detections]
+                        )
+                        num_detections = len(tumor_detections)
+                    else:
+                        tumor_detections = sv.Detections.empty()
+                        num_detections = 0
+                    
+                    # Apply annotations only if tumors are detected
+                    if num_detections > 0:
+                        # Create custom labels with class names and confidence
+                        labels = []
+                        for i in range(len(tumor_detections)):
+                            class_id = tumor_detections.class_id[i]
+                            class_name = class_names.get(class_id, f"Class_{class_id}")
+                            confidence = tumor_detections.confidence[i]
+                            labels.append(f"{class_name} ")
+                        
+                        # Create annotators
+                        mask_annotator = sv.MaskAnnotator()
+                        # Use custom labels for the label annotator
+                        label_annotator = sv.LabelAnnotator(
+                            text_position=sv.Position.TOP_LEFT,
+                            text_scale=0.7,
+                            text_thickness=2
+                        )
+                        corner_annotator = sv.BoxCornerAnnotator()
+                        
+                        # Apply annotations only to tumor detections
+                        annotated_image = mask_annotator.annotate(
+                            scene=opencv_image.copy(), detections=tumor_detections)
+                        annotated_image = label_annotator.annotate(
+                            scene=annotated_image, detections=tumor_detections, labels=labels)
+                        annotated_image = corner_annotator.annotate(
+                            scene=annotated_image, detections=tumor_detections)
+                        
+                        # Convert BGR to RGB for Streamlit display
+                        annotated_image_rgb = cv2.cvtColor(annotated_image, cv2.COLOR_BGR2RGB)
+                    else:
+                        # No tumors detected, use original image
+                        annotated_image_rgb = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2RGB)
                     
                     # Save detection to history
                     timestamp = datetime.now().isoformat()
@@ -242,7 +287,7 @@ else:
                         "filename": uploaded_file.name,
                         "size": f"{opencv_image.shape[1]}x{opencv_image.shape[0]}"
                     }
-                    save_detection_history(user_info['user_id'], image_info, len(detections), timestamp)
+                    save_detection_history(user_info['user_id'], image_info, num_detections, timestamp)
                     
                     # Display results
                     st.subheader("Analysis Results")
@@ -251,12 +296,24 @@ else:
                         st.image(opencv_image, channels="BGR", 
                                 caption="Original Scan", use_container_width=True)
                     with col2:
-                        st.image(annotated_image_rgb, 
-                                caption="Detected Tumor Regions", use_container_width=True)
+                        if num_detections > 0:
+                            st.image(annotated_image_rgb, 
+                                    caption=f"Detected Tumor Regions ({num_detections} found)", use_container_width=True)
+                            
+                            # Show detailed detection information
+                            st.subheader("Detection Details")
+                            for i in range(len(tumor_detections)):
+                                class_id = tumor_detections.class_id[i]
+                                class_name = class_names.get(class_id, f"Class_{class_id}")
+                                confidence = tumor_detections.confidence[i]
+                                st.write(f"**{class_name}**")
+                        else:
+                            st.image(annotated_image_rgb, 
+                                    caption="No Tumors Detected", use_container_width=True)
                     
                     # Show detection summary
-                    if len(detections) > 0:
-                        st.success(f"✅ Detected {len(detections)} potential tumor regions")
+                    if num_detections > 0:
+                        st.success(f"✅ Detected {num_detections} potential tumor regions")
                         st.warning("⚠️ Please consult with a medical professional for proper diagnosis.")
                     else:
                         st.success("✅ No tumors detected in this scan")
